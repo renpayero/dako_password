@@ -2,7 +2,6 @@
 import io
 from datetime import datetime
 
-from lxml import etree
 from openpyxl import load_workbook
 
 from odoo import Command
@@ -78,13 +77,12 @@ class TestDakoPasswordAccess(DakoPasswordCommon):
         self.assertEqual(managed.user_ids, self.user_b)
 
     def test_role_selector_only_in_debug_mode(self):
+        # Odoo 19: a group without privilege goes to the "Extra Rights" section of the
+        # user form, which the web client only renders in debug (technical) mode.
         group = self.env.ref('dako_password.dako_password_group_manager')
-        self.env['res.groups']._update_user_groups_view()
-        arch = etree.fromstring(self.env.ref('base.user_groups_view').arch_db)
-        selectors = arch.xpath("//field[@name='sel_groups_%d'][not(@invisible)]" % group.id)
-        self.assertEqual(len(selectors), 1)
-        # base.group_no_one: the field is only rendered in debug (technical) mode.
-        self.assertEqual(selectors[0].get('groups'), 'base.group_no_one')
+        self.assertFalse(group.privilege_id)
+        hierarchy = self.env['res.groups']._get_view_group_hierarchy()
+        self.assertFalse(hierarchy['groups'][group.id]['privilege_id'])
 
     def test_default_vault_when_user_has_only_one(self):
         Password = self.env['dako.password'].with_user(self.user_a)
@@ -305,7 +303,7 @@ class TestDakoPasswordVault(DakoPasswordCommon):
             self.vault_a.write({'user_ids': [Command.clear()]})
         portal = self.env['res.users'].create({
             'name': 'Portal', 'login': 'dako_portal',
-            'groups_id': [Command.set(self.env.ref('base.group_portal').ids)],
+            'group_ids': [Command.set(self.env.ref('base.group_portal').ids)],
         })
         with self.assertRaises(ValidationError):
             self.vault_a.write({'user_ids': [Command.link(portal.id)]})

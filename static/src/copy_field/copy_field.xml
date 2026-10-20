@@ -13,7 +13,7 @@
                 <input t-ref="input"
                        class="o_input o_dako_password_copy_input font-monospace"
                        t-att-id="props.id"
-                       t-att-placeholder="placeholder"
+                       t-att-placeholder="props.placeholder"
                        t-att-maxlength="maxLength > 0 and maxLength"
                        autocomplete="off"
                        spellcheck="false"

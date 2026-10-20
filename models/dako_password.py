@@ -6,7 +6,7 @@ from random import SystemRandom
 
 from odoo import api, fields, models
 from odoo.exceptions import ValidationError
-from odoo.tools.misc import xlsxwriter
+import xlsxwriter
 
 # Generator alphabets: no look-alike characters (l, I, O, 0, 1) and only symbols that
 # survive copy and paste into forms, shells and spreadsheets.
@@ -146,15 +146,13 @@ class DakoPassword(models.Model):
         for rec in self:
             rec.display_name = '[%s] %s' % (rec.vault_id.name, rec.name) if rec.vault_id else rec.name
 
-    @api.constrains('vault_id')
-    def _check_vault_id(self):
-        if self.env.su:
-            return
-        for rec in self:
-            if not rec.vault_id.has_access('read'):
-                raise ValidationError(self.env._(
-                    "No podés guardar la credencial \"%s\" en un vault al que no tenés acceso.", rec.name,
-                ))
+    def _dako_check_vault_access(self, vault, name):
+        # Not an @api.constrains: Odoo 19 runs constraints as superuser, so a constraint
+        # cannot tell whose change it is. create() and write() call this as the user.
+        if not self.env.su and vault and not vault.has_access('read'):
+            raise ValidationError(self.env._(
+                "No podés guardar la credencial \"%s\" en un vault al que no tenés acceso.", name,
+            ))
 
     @api.onchange('password_input')
     def _onchange_password_input(self):
@@ -185,10 +183,26 @@ class DakoPassword(models.Model):
             if not value:
                 raise ValidationError(self.env._("Cargá la contraseña de la credencial."))
             vals['password'] = value
-        return super().create(vals_list)
+        if self.env.su:
+            return super().create(vals_list)
+        # Odoo 19 refuses `password` (NO_ACCESS) in create() for regular users, so the
+        # records are created as superuser and every check runs again as the user: model
+        # rights before, vault access and record rules after (an error rolls back).
+        self.check_access('create')
+        records = super(DakoPassword, self.sudo()).create(vals_list)
+        Vault = self.env['dako.password.vault']
+        for rec in records:
+            self._dako_check_vault_access(Vault.browse(rec.vault_id.id), rec.name)
+        records = records.sudo(False)
+        records.check_access('create')
+        return records
 
     def write(self, vals):
         vals = dict(vals)
+        if 'vault_id' in vals:
+            vault = self.env['dako.password.vault'].browse(vals['vault_id'])
+            for rec in self:
+                self._dako_check_vault_access(vault, vals.get('name', rec.name))
         value = vals.pop('password_input', False)
         if 'active' in vals and 'archived_with_vault' not in vals:
             # Archived or restored by hand: no longer follows its vault.
