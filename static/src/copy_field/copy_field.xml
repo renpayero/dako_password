@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="dako_password.CopyField">
+        <div class="o_dako_password_copy_field d-flex align-items-center gap-1 w-100">
+            <t t-if="props.readonly">
+                <a t-if="isWebAddress()" class="o_dako_password_copy_value text-truncate"
+                   t-att-href="value().trim()" target="_blank" rel="noopener noreferrer"
+                   t-esc="value()" t-on-click.stop=""/>
+                <span t-else="" class="o_dako_password_copy_value font-monospace text-truncate" t-esc="value()"/>
+            </t>
+            <t t-else="">
+                <input t-ref="input"
+                       class="o_input o_dako_password_copy_input font-monospace"
+                       t-att-id="props.id"
+                       t-att-placeholder="placeholder"
+                       t-att-maxlength="maxLength > 0 and maxLength"
+                       autocomplete="off"
+                       spellcheck="false"
+                       t-on-blur="onBlur"/>
+                <a t-if="isWebAddress()" class="btn btn-link btn-sm o_dako_password_button"
+                   t-att-href="value().trim()" target="_blank" rel="noopener noreferrer"
+                   title="Abrir en otra pestaña" aria-label="Abrir en otra pestaña">
+                    <i class="fa fa-external-link"/>
+                </a>
+            </t>
+            <CopyButton t-if="value()"
+                        className="'btn-link btn-sm o_dako_password_button'"
+                        content="value()"
+                        icon="'fa-clone'"
+                        successText="'Copiado'"/>
+        </div>
+    </t>
+
+</templates>

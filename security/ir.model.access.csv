@@ -1,0 +1,6 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_dako_password_vault_user,dako.password.vault.user,model_dako_password_vault,base.group_user,1,1,1,0
+access_dako_password_vault_manager,dako.password.vault.manager,model_dako_password_vault,dako_password_group_manager,1,1,1,1
+access_dako_password_user,dako.password.user,model_dako_password,base.group_user,1,1,1,0
+access_dako_password_manager,dako.password.manager,model_dako_password,dako_password_group_manager,1,1,1,1
+access_dako_password_access_log_manager,dako.password.access.log.manager,model_dako_password_access_log,dako_password_group_manager,1,0,0,0
