@@ -1,9 +1,13 @@
 # -*- coding: utf-8 -*-
 import io
+import unittest
 from datetime import datetime
 
 from lxml import etree
-from openpyxl import load_workbook
+try:
+    from openpyxl import load_workbook
+except ImportError:  # not shipped with the Odoo 17 images: the tests reading the export skip
+    load_workbook = None
 
 from odoo import Command
 from odoo.exceptions import AccessError, UserError, ValidationError
@@ -372,6 +376,7 @@ class TestDakoPasswordVault(DakoPasswordCommon):
         self.assertEqual(action['context']['searchpanel_default_vault_id'], self.vault_a.id)
 
 
+@unittest.skipIf(load_workbook is None, 'openpyxl no está instalado')
 @tagged('post_install', '-at_install')
 class TestDakoPasswordExport(DakoPasswordCommon):
 

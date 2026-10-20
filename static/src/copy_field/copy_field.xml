@@ -13,22 +13,22 @@
                 <input t-ref="input"
                        class="o_input o_dako_password_copy_input font-monospace"
                        t-att-id="props.id"
-                       t-att-placeholder="placeholder"
+                       t-att-placeholder="props.placeholder"
                        t-att-maxlength="maxLength > 0 and maxLength"
                        autocomplete="off"
-                       spellcheck="false"
-                       t-on-blur="onBlur"/>
+                       spellcheck="false"/>
                 <a t-if="isWebAddress()" class="btn btn-link btn-sm o_dako_password_button"
                    t-att-href="value().trim()" target="_blank" rel="noopener noreferrer"
                    title="Abrir en otra pestaña" aria-label="Abrir en otra pestaña">
                     <i class="fa fa-external-link"/>
                 </a>
             </t>
-            <CopyButton t-if="value()"
-                        className="'btn-link btn-sm o_dako_password_button'"
-                        content="value()"
-                        icon="'fa-clone'"
-                        successText="'Copiado'"/>
+            <button t-if="value()" type="button"
+                    class="btn btn-link btn-sm o_dako_password_button o_dako_password_copy_text"
+                    title="Copiar" aria-label="Copiar"
+                    t-on-click.stop="onClickCopy">
+                <i class="fa fa-clone"/>
+            </button>
         </div>
     </t>
 

@@ -56,11 +56,9 @@ class DakoPasswordData:
 class DakoPasswordCommon(BaseCommon, DakoPasswordData):
 
     @classmethod
-    def default_env_context(cls):
-        # Tracking stays on: the chatter is part of the audit trail under test.
-        return {'no_reset_password': True}
-
-    @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        # Tracking stays on: the chatter is part of the audit trail under test. In 17.0
+        # BaseCommon forces DISABLED_MAIL_CONTEXT (no default_env_context() hook yet).
+        cls.env = cls.env(context={'no_reset_password': True})
         cls._dako_setup_data()

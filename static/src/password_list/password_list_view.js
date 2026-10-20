@@ -1,7 +1,8 @@
+/** @odoo-module **/
+
 import { onWillStart, useState } from "@odoo/owl";
 import { download } from "@web/core/network/download";
 import { registry } from "@web/core/registry";
-import { user } from "@web/core/user";
 import { useService } from "@web/core/utils/hooks";
 import { ListController } from "@web/views/list/list_controller";
 import { listView } from "@web/views/list/list_view";
@@ -10,11 +11,12 @@ export class DakoPasswordListController extends ListController {
     setup() {
         super.setup();
         this.ui = useService("ui");
+        this.user = useService("user");
         this.reveal = useService("dako_password.reveal");
         this.revealed = useState(this.reveal.state);
         this.dakoState = useState({ canExport: false });
         onWillStart(async () => {
-            this.dakoState.canExport = await user.hasGroup("base.group_allow_export");
+            this.dakoState.canExport = await this.user.hasGroup("base.group_allow_export");
         });
     }
 

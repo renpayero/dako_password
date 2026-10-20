@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from random import randint
 
-from odoo import Command, api, fields, models
+from odoo import Command, _, api, fields, models
 from odoo.exceptions import UserError, ValidationError
 
 
@@ -47,11 +47,11 @@ class DakoPasswordVault(models.Model):
     def _check_user_ids(self):
         for vault in self:
             if not vault.user_ids:
-                raise ValidationError(self.env._(
+                raise ValidationError(_(
                     "El vault \"%s\" tiene que tener al menos un usuario autorizado.", vault.name,
                 ))
             if vault.user_ids.filtered('share'):
-                raise ValidationError(self.env._(
+                raise ValidationError(_(
                     "El vault \"%s\" solo admite usuarios internos.", vault.name,
                 ))
 
@@ -73,7 +73,7 @@ class DakoPasswordVault(models.Model):
         # Read as superuser: after leaving, the record rules no longer let the user read it.
         left = member_of.sudo().filtered(lambda vault: self.env.user not in vault.user_ids)
         if left:
-            raise UserError(self.env._(
+            raise UserError(_(
                 "No podés quitarte del vault \"%s\": perderías el acceso. "
                 "Pedíselo a otro usuario del vault o a un Administrador de contraseñas.",
                 left[:1].name,
@@ -98,7 +98,7 @@ class DakoPasswordVault(models.Model):
             [('vault_id', 'in', self.ids)], limit=1,
         )
         if has_credentials:
-            raise UserError(self.env._(
+            raise UserError(_(
                 "No se puede borrar un vault con credenciales (también cuentan las archivadas). "
                 "Archivalo o mové sus credenciales a otro vault."
             ))

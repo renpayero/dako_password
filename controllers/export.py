@@ -4,7 +4,7 @@ import logging
 
 from werkzeug.exceptions import InternalServerError
 
-from odoo import fields, http
+from odoo import _, fields, http
 from odoo.exceptions import AccessError, UserError
 from odoo.http import content_disposition, request
 
@@ -28,16 +28,16 @@ class DakoPasswordExport(http.Controller):
     def _export_xlsx(self, domain, ids):
         env = request.env
         if not env.user.has_group('base.group_allow_export'):
-            raise AccessError(env._("No tenés permiso para exportar datos."))
+            raise AccessError(_("No tenés permiso para exportar datos."))
         try:
             record_ids = json.loads(ids)
             search_domain = json.loads(domain)
         except ValueError as exc:
-            raise UserError(env._("Pedido de exportación inválido.")) from exc
+            raise UserError(_("Pedido de exportación inválido.")) from exc
         if not isinstance(record_ids, list) or not all(isinstance(i, int) for i in record_ids):
-            raise UserError(env._("Pedido de exportación inválido."))
+            raise UserError(_("Pedido de exportación inválido."))
         if not isinstance(search_domain, list):
-            raise UserError(env._("Pedido de exportación inválido."))
+            raise UserError(_("Pedido de exportación inválido."))
         if record_ids:
             search_domain = [('id', 'in', record_ids)]
 

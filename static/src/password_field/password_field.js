@@ -1,3 +1,5 @@
+/** @odoo-module **/
+
 import { Component, onWillUnmount, onWillUpdateProps, useState } from "@odoo/owl";
 import { browser } from "@web/core/browser/browser";
 import { _t } from "@web/core/l10n/translation";
@@ -172,8 +174,6 @@ export const dakoPasswordField = {
     component: DakoPasswordField,
     displayName: _t("Contraseña protegida"),
     supportedTypes: ["char"],
-    // [min, max] in list views: the mask, or a revealed password, plus two buttons.
-    listViewWidth: [160, 300],
     extractProps: ({ attrs }) => ({
         placeholder: attrs.placeholder,
     }),

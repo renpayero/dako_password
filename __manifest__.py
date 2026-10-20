@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Dako Password Manager',
-    'version': '18.0.2.0.1',
+    'version': '17.0.2.0.1',
     'summary': 'Credenciales del equipo en vaults, con control de acceso y auditoría',
     'description': """
 Gestor de credenciales del equipo

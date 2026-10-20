@@ -4,8 +4,8 @@ import re
 import secrets
 from random import SystemRandom
 
-from odoo import api, fields, models
-from odoo.exceptions import ValidationError
+from odoo import _, api, fields, models
+from odoo.exceptions import AccessError, ValidationError
 from odoo.tools.misc import xlsxwriter
 
 # Generator alphabets: no look-alike characters (l, I, O, 0, 1) and only symbols that
@@ -113,7 +113,7 @@ class DakoPassword(models.Model):
         STRENGTH_SELECTION, string='Fortaleza', compute='_compute_strength', store=True,
     )
     strength_score = fields.Integer(
-        string='Puntaje', compute='_compute_strength', store=True, aggregator='avg',
+        string='Puntaje', compute='_compute_strength', store=True, group_operator='avg',
     )
     criticality_color = fields.Integer(compute='_compute_criticality_color')
     access_log_count = fields.Integer(
@@ -151,10 +151,13 @@ class DakoPassword(models.Model):
         if self.env.su:
             return
         for rec in self:
-            if not rec.vault_id.has_access('read'):
-                raise ValidationError(self.env._(
+            try:
+                rec.vault_id.check_access_rights('read')
+                rec.vault_id.check_access_rule('read')
+            except AccessError:
+                raise ValidationError(_(
                     "No podés guardar la credencial \"%s\" en un vault al que no tenés acceso.", rec.name,
-                ))
+                )) from None
 
     @api.onchange('password_input')
     def _onchange_password_input(self):
@@ -170,8 +173,8 @@ class DakoPassword(models.Model):
     def _onchange_url(self):
         if self.url and URL_WITH_CREDENTIALS.search(self.url):
             return {'warning': {
-                'title': self.env._("La dirección tiene usuario y contraseña"),
-                'message': self.env._(
+                'title': _("La dirección tiene usuario y contraseña"),
+                'message': _(
                     "La dirección incluye un usuario y una contraseña (usuario:clave@). "
                     "Cargalos en sus campos: el acceso se muestra sin protección."
                 ),
@@ -183,7 +186,7 @@ class DakoPassword(models.Model):
         for vals in vals_list:
             value = vals.pop('password_input', False) or vals.get('password')
             if not value:
-                raise ValidationError(self.env._("Cargá la contraseña de la credencial."))
+                raise ValidationError(_("Cargá la contraseña de la credencial."))
             vals['password'] = value
         return super().create(vals_list)
 
@@ -201,16 +204,16 @@ class DakoPassword(models.Model):
             self._dako_set_password(value)
         if notes_changed:
             notes_changed._message_log_batch(
-                {rec.id: self.env._("Modificó las notas.") for rec in notes_changed}
+                {rec.id: _("Modificó las notas.") for rec in notes_changed}
             )
         return result
 
     def copy(self, default=None):
-        self.check_access('read')
+        self._dako_check_access('read')
         new_records = self.browse()
         for rec in self:
             values = dict(default or {})
-            values.setdefault('name', self.env._("%s (copia)", rec.name))
+            values.setdefault('name', _("%s (copia)", rec.name))
             values['password'] = rec.sudo().password
             new_records |= super(DakoPassword, rec).copy(values)
         self._dako_log_access('duplicate')
@@ -226,16 +229,21 @@ class DakoPassword(models.Model):
     def dako_reveal(self, action='reveal'):
         """Return {id: password} for the widget; every call is logged."""
         if action not in ACCESS_ACTIONS:
-            raise ValidationError(self.env._("Acción de acceso desconocida: %s", action))
+            raise ValidationError(_("Acción de acceso desconocida: %s", action))
         return self._dako_read_passwords(action)
 
     @api.model
     def generate_password(self):
         return new_password()
 
+    def _dako_check_access(self, operation):
+        # Model access and record rules together (what check_access() does from 18.0 on).
+        self.check_access_rights(operation)
+        self.check_access_rule(operation)
+
     def _dako_read_passwords(self, action):
         # Single read path of the secret: access check, log, then the value.
-        self.check_access('read')
+        self._dako_check_access('read')
         self._dako_log_access(action)
         return {rec.id: rec.password for rec in self.sudo()}
 
@@ -252,12 +260,12 @@ class DakoPassword(models.Model):
         } for rec in self])
 
     def _dako_set_password(self, value):
-        self.check_access('write')
+        self._dako_check_access('write')
         changed = self.sudo().filtered(lambda rec: rec.password != value)
         if not changed:
             return
         changed.write({'password': value, 'password_changed_date': fields.Datetime.now()})
-        changed._message_log_batch({rec.id: self.env._("Cambió la contraseña.") for rec in changed})
+        changed._message_log_batch({rec.id: _("Cambió la contraseña.") for rec in changed})
 
     def _dako_export_xlsx(self):
         """Spreadsheet with the credentials in self; the export is logged."""
@@ -272,23 +280,23 @@ class DakoPassword(models.Model):
             'strings_to_urls': False,
             'strings_to_numbers': False,
         })
-        sheet = workbook.add_worksheet(self.env._("Credenciales"))
+        sheet = workbook.add_worksheet(_("Credenciales"))
         header_format = workbook.add_format({'bold': True, 'bottom': 1, 'valign': 'vcenter'})
         text_format = workbook.add_format({'valign': 'top'})
         wrap_format = workbook.add_format({'valign': 'top', 'text_wrap': True})
         date_format = workbook.add_format({'valign': 'top', 'num_format': 'dd/mm/yyyy hh:mm'})
 
         columns = [
-            (self.env._("Vault"), 22),
-            (self.env._("Servicio"), 28),
-            (self.env._("Propósito"), 32),
-            (self.env._("Acceso"), 36),
-            (self.env._("Usuario / cuenta"), 26),
-            (self.env._("Contraseña"), 26),
-            (self.env._("Criticidad"), 12),
-            (self.env._("Fortaleza"), 12),
-            (self.env._("Contraseña cambiada"), 20),
-            (self.env._("Notas"), 50),
+            (_("Vault"), 22),
+            (_("Servicio"), 28),
+            (_("Propósito"), 32),
+            (_("Acceso"), 36),
+            (_("Usuario / cuenta"), 26),
+            (_("Contraseña"), 26),
+            (_("Criticidad"), 12),
+            (_("Fortaleza"), 12),
+            (_("Contraseña cambiada"), 20),
+            (_("Notas"), 50),
         ]
         for col, (title, width) in enumerate(columns):
             sheet.set_column(col, col, width)
